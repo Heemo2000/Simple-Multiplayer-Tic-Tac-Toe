@@ -7,7 +7,7 @@ namespace Game.Gameplay
     public enum MarkType
     {
         None = -1,
-        O,
-        X
+        Circle,
+        Cross
     }
 }
