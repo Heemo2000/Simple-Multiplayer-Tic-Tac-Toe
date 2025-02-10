@@ -13,6 +13,7 @@ namespace Game.Gameplay
         [SerializeField]private Vector2 cellSize = Vector2.zero;
         [SerializeField]private SquashStretchEffect circlePrefab;
         [SerializeField]private SquashStretchEffect crossPrefab;
+        [SerializeField]private SpriteRenderer linePrefab;
 
         private void InstantiateSomething(int x, int y, MarkType playerType)
         {
@@ -25,6 +26,28 @@ namespace Game.Gameplay
             {
                 SpawnCircleServerRpc(x, y);
             }
+        }
+
+        private void SpawnLine(Line line)
+        {
+            SpawnLineServerRpc(line.Centre, line.Points[0], line.Points[2]);
+        }
+
+        [ServerRpc(Delivery = RpcDelivery.Reliable, RequireOwnership = false)]
+        private void SpawnLineServerRpc(Vector2Int centre, Vector2Int firstPoint, Vector2Int thirdPoint)
+        {
+            Vector2 spawnPosition = CommonUtility.GetWorldPosition2D(origin, centre.x, centre.y, 1, -1, cellSize, gap.x, gap.y);
+            Vector2 direction = ((Vector2)thirdPoint - (Vector2)firstPoint).normalized;
+            
+            float temp = direction.x;
+            direction.x = direction.y;
+            direction.y = temp;
+            
+            Debug.Log("Direction: " + direction);
+            float angle = Vector2.Angle(Vector2.right, direction);
+
+            var lineSprite = Instantiate(linePrefab, spawnPosition, Quaternion.Euler(0.0f, 0.0f, angle));
+            lineSprite.GetComponent<NetworkObject>().Spawn(true);
         }
 
         [ServerRpc(Delivery = RpcDelivery.Reliable, RequireOwnership = false)] 
@@ -52,12 +75,14 @@ namespace Game.Gameplay
         void Start()
         {
             GameManager.Instance.OnClickedGridPosition += InstantiateSomething;
+            GameManager.Instance.OnGameWin += SpawnLine;
         }
 
         
         public override void OnDestroy() 
         {
             GameManager.Instance.OnClickedGridPosition -= InstantiateSomething;
+            GameManager.Instance.OnGameWin -= SpawnLine;
             base.OnDestroy();
         }
     }
