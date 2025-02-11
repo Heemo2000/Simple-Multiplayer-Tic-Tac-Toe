@@ -12,7 +12,27 @@ namespace Game.UI
         [SerializeField]private Image circle;
         [SerializeField]private TMP_Text crossText;
         [SerializeField]private TMP_Text circleText;
+        [SerializeField]private TMP_Text crossWinsText;
+        [SerializeField]private TMP_Text circleWinsText;
+        
 
+        private void IncreaseWinCount()
+        {
+            int crossWinsCount = 0;
+            int circleWinsCount = 0;
+            GameManager.Instance.GetScores(out crossWinsCount, out circleWinsCount);
+            SetCrossWinsText(crossWinsCount);
+            SetCircleWinsText(circleWinsCount);
+        }
+        private void SetCrossWinsText(int wins)
+        {
+            crossWinsText.text = wins.ToString();
+        }
+
+        private void SetCircleWinsText(int wins)
+        {
+            circleWinsText.text = wins.ToString();
+        }
         private void Reset()
         {
             rightArrow.gameObject.SetActive(false);
@@ -21,11 +41,21 @@ namespace Game.UI
             circle.gameObject.SetActive(true);
             crossText.gameObject.SetActive(false);
             circleText.gameObject.SetActive(false);
+            crossWinsText.gameObject.SetActive(false);
+            circleWinsText.gameObject.SetActive(false);
         }
+
         private void OnGameStarted()
         {
             Debug.Log("Game has started.");
             Reset();
+            
+            crossWinsText.gameObject.SetActive(true);
+            circleWinsText.gameObject.SetActive(true);
+
+            SetCrossWinsText(0);
+            SetCircleWinsText(0);
+
             if(GameManager.Instance.LocalPlayerType == MarkType.Cross)
             {
                 crossText.gameObject.SetActive(true);
@@ -61,13 +91,15 @@ namespace Game.UI
         void Start()
         {
             GameManager.Instance.OnGameStarted += OnGameStarted;
-            GameManager.Instance.OnCurrentPlayablePlayerChanged += UpdateCurrentArrow;   
+            GameManager.Instance.OnCurrentPlayablePlayerChanged += UpdateCurrentArrow;
+            GameManager.Instance.OnScoreChanged += IncreaseWinCount; 
         }
 
         private void OnDestroy() 
         {
             GameManager.Instance.OnGameStarted -= OnGameStarted;
-            GameManager.Instance.OnCurrentPlayablePlayerChanged -= UpdateCurrentArrow;    
+            GameManager.Instance.OnCurrentPlayablePlayerChanged -= UpdateCurrentArrow;
+            GameManager.Instance.OnScoreChanged -= IncreaseWinCount; 
         }
     }
 }

@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 5904048759063503641}
   - component: {fileID: 1067397260639240928}
   - component: {fileID: 1174778976166348410}
+  - component: {fileID: 4450056949993103345}
   m_Layer: 0
   m_Name: Line Sprite
   m_TagString: Untagged
@@ -29,7 +30,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 4, y: 4, z: 1}
+  m_LocalScale: {x: 4, y: 0.546875, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -79,8 +80,8 @@ SpriteRenderer:
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
-  m_DrawMode: 0
-  m_Size: {x: 1, y: 1}
+  m_DrawMode: 1
+  m_Size: {x: 1.1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -98,7 +99,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 1070169357
+  GlobalObjectIdHash: 867879412
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
   ActiveSceneSynchronization: 0
@@ -124,8 +125,8 @@ MonoBehaviour:
   SyncRotAngleX: 0
   SyncRotAngleY: 0
   SyncRotAngleZ: 1
-  SyncScaleX: 0
-  SyncScaleY: 0
+  SyncScaleX: 1
+  SyncScaleY: 1
   SyncScaleZ: 0
   PositionThreshold: 0.001
   RotAngleThreshold: 0.01
@@ -136,3 +137,125 @@ MonoBehaviour:
   InLocalSpace: 0
   Interpolate: 1
   SlerpPosition: 0
+--- !u!114 &4450056949993103345
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1694811382108868138}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f216757750ec584c99720f86d0fd084, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  duration: 0.1
+  affectX: 1
+  xScaleCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 6.2330594
+      outSlope: 6.2330594
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 0.15166461
+      value: 0.94533455
+      inSlope: 0.047774408
+      outSlope: 0.047774408
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.26016256
+      outWeight: 0.04057969
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: -1.1143405
+      outSlope: -1.1143405
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  affectY: 1
+  yScaleCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 6.2330594
+      outSlope: 6.2330594
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 0.15166461
+      value: 0.94533455
+      inSlope: 0.047774408
+      outSlope: 0.047774408
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.26016256
+      outWeight: 0.04057969
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: -1.1143405
+      outSlope: -1.1143405
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  affectZ: 0
+  zScaleCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 6.2330594
+      outSlope: 6.2330594
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 0.15166461
+      value: 0.94533455
+      inSlope: 0.047774408
+      outSlope: 0.047774408
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.26016256
+      outWeight: 0.04057969
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: -1.1143405
+      outSlope: -1.1143405
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  maxScale: {x: 4.1, y: 0.646875, z: 1}
+  OnStartEffect:
+    m_PersistentCalls:
+      m_Calls: []
+  OnEndEffect:
+    m_PersistentCalls:
+      m_Calls: []

@@ -2,7 +2,6 @@ using System;
 using UnityEngine;
 using Unity.Netcode;
 using Game.Core;
-using Unity.Collections;
 using System.Collections.Generic;
 
 namespace Game.Gameplay
@@ -11,14 +10,43 @@ namespace Game.Gameplay
     {
         private MarkType localPlayerType = MarkType.None;
         private NetworkVariable<MarkType> currentPlayablePlayerType = new NetworkVariable<MarkType>(MarkType.None);
+        private NetworkVariable<int> crossWinsCount = new NetworkVariable<int>(0);
+        private NetworkVariable<int> circleWinsCount = new NetworkVariable<int>(0);
         private MarkType[,] playerTypeArray = null;
         private List<Line> linesList;
         public Action<int,int, MarkType> OnClickedGridPosition;
+        public Action OnPlacedObject;
         public Action OnGameStarted;
-        public Action<Line> OnGameWin;
+        public Action<Line, MarkType> OnGameWin;
         public Action OnCurrentPlayablePlayerChanged;
+        public Action OnRematch;
+        public Action OnGameTied;
+        public Action OnScoreChanged;
         public MarkType LocalPlayerType { get => localPlayerType; }
         public MarkType CurrentPlayablePlayerType { get => currentPlayablePlayerType.Value; }
+
+        [ServerRpc(Delivery = RpcDelivery.Reliable, RequireOwnership = false)]
+        public void RematchServerRpc()
+        {
+            for(int x = 0; x < playerTypeArray.GetLength(0); x++)
+            {
+                for(int y = 0; y < playerTypeArray.GetLength(1); y++)
+                {
+                    playerTypeArray[x,y] = MarkType.None; 
+                }
+            }
+
+            currentPlayablePlayerType.Value = MarkType.Cross;
+            TriggerOnRematchClientRpc();
+        }
+
+        
+
+        public void GetScores(out int crossWinsCount, out int circleWinsCount)
+        {
+            crossWinsCount = this.crossWinsCount.Value;
+            circleWinsCount = this.circleWinsCount.Value;
+        }
 
         [ServerRpc(Delivery = RpcDelivery.Reliable, RequireOwnership = false)]
         public void ClickedOnGridPositionServerRpc(int x, int y, MarkType playerType)
@@ -37,6 +65,7 @@ namespace Game.Gameplay
             playerTypeArray[x,y] = playerType;
 
             OnClickedGridPosition?.Invoke(x, y, playerType);
+            OnPlacedObject?.Invoke();
 
             switch(currentPlayablePlayerType.Value)
             {
@@ -77,6 +106,14 @@ namespace Game.Gameplay
             currentPlayablePlayerType.OnValueChanged += (MarkType oldPlayerType, MarkType newPlayerType) => {
                 OnCurrentPlayablePlayerChanged?.Invoke();
             };
+
+            crossWinsCount.OnValueChanged += (int oldScore, int newScore) => {
+                OnScoreChanged?.Invoke();
+            };
+
+            circleWinsCount.OnValueChanged += (int oldScore, int newScore) => {
+                OnScoreChanged?.Invoke();
+            };
         }
 
         public override void OnNetworkDespawn()
@@ -99,6 +136,8 @@ namespace Game.Gameplay
         private void TriggerOnGameStartedServerRpc()
         {
             currentPlayablePlayerType.Value = MarkType.Cross;
+            crossWinsCount.Value = 0;
+            circleWinsCount.Value = 0;
             TriggerOnGameStartedClientRpc();
         }
 
@@ -122,29 +161,87 @@ namespace Game.Gameplay
         }
         private void CheckWinner()
         {
-            //Top
-            //Middle
-            //Bottom
-            //Diagonal from top left to bottom right
-            //Diagonal from top right to bottom left
 
-            foreach(Line line in linesList)
+            for(int i = 0 ; i < linesList.Count; i++)
             {
+                Line line = linesList[i];
                 if(CheckLine(line))
                 {
-                    OnGameWin?.Invoke(line);
+                    MarkType winPlayerType = playerTypeArray[line.Centre.x, line.Centre.y];
+                    
+                    switch(winPlayerType)
+                    {
+                        case MarkType.Cross:
+                                             crossWinsCount.Value++;
+                                             break;
+                        
+                        case MarkType.Circle:
+                                             circleWinsCount.Value++;
+                                             break;
+                    }
+
+                    TriggerOnGameWinServerRpc(i, winPlayerType);
                     currentPlayablePlayerType.Value = MarkType.None;
-                    break;    
+                    return;    
                 }
             }
+
+            bool hasTie = true;
+            for(int x = 0; x < playerTypeArray.GetLength(0); x++)
+            {
+                for(int y = 0; y < playerTypeArray.GetLength(1); y++)
+                {
+                    if(playerTypeArray[x,y] == MarkType.None)
+                    {
+                        hasTie = false;
+                        break;
+                    }
+                }
+            }
+
+            if(hasTie)
+            {
+                TriggerOnGameTiedServerRpc();
+            }
+        }
+
+        [ClientRpc(Delivery = RpcDelivery.Reliable)]
+        private void TriggerOnRematchClientRpc()
+        {
+            OnRematch?.Invoke();
+        }
+
+        [ServerRpc(Delivery = RpcDelivery.Reliable, RequireOwnership = false)]
+        private void TriggerOnGameWinServerRpc(int lineIndex, MarkType playerType)
+        {
+            TriggerOnGameWinClientRpc(lineIndex, playerType);
+        }
+
+        [ClientRpc(Delivery = RpcDelivery.Reliable)]
+        private void TriggerOnGameWinClientRpc(int lineIndex, MarkType playerType)
+        {
+            Line line = linesList[lineIndex];
+            OnGameWin?.Invoke(line, playerType);
+        }
+
+        [ServerRpc(Delivery = RpcDelivery.Reliable, RequireOwnership = false)]
+        private void TriggerOnGameTiedServerRpc()
+        {
+            TriggerOnGameTiedClientRpc();
+        }
+
+        [ClientRpc(Delivery = RpcDelivery.Reliable)]
+        private void TriggerOnGameTiedClientRpc()
+        {
+            OnGameTied?.Invoke();
         }
 
         protected override void InternalInit()
         {
             playerTypeArray = new MarkType[3,3];
-            for(int x = 0; x < 3; x++)
+            for(int x = 0; x < playerTypeArray.GetLength(0); x++)
             {
-                for(int y = 0; y < 3; y++)
+                for(int y = 0; y < playerTypeArray.GetLength(1); y++)
                 {
                     playerTypeArray[x,y] = MarkType.None; 
                 }
@@ -155,25 +252,30 @@ namespace Game.Gameplay
                 //Horizontal
 
                 new Line(new List<Vector2Int>() { new Vector2Int(0, 0), new Vector2Int(0, 1), new Vector2Int(0, 2) },
-                          new Vector2Int(0, 1)),
+                          new Vector2Int(0, 1), Orientation.Horizontal),
+
                 new Line(new List<Vector2Int>() { new Vector2Int(1, 0), new Vector2Int(1, 1), new Vector2Int(1, 2) },
-                          new Vector2Int(1, 1)),
+                          new Vector2Int(1, 1), Orientation.Horizontal),
+
                 new Line(new List<Vector2Int>() { new Vector2Int(2, 0), new Vector2Int(2, 1), new Vector2Int(2, 2) },
-                          new Vector2Int(2, 1)),
+                          new Vector2Int(2, 1), Orientation.Horizontal),
 
                 //Vertical
                 new Line(new List<Vector2Int>() { new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(2, 0) },
-                          new Vector2Int(1, 0)),
+                          new Vector2Int(1, 0), Orientation.Vertical),
+
                 new Line(new List<Vector2Int>() { new Vector2Int(0, 1), new Vector2Int(1, 1), new Vector2Int(2, 1) },
-                          new Vector2Int(1, 1)),
+                          new Vector2Int(1, 1), Orientation.Vertical),
+
                 new Line(new List<Vector2Int>() { new Vector2Int(0, 2), new Vector2Int(1, 2), new Vector2Int(2, 2) },
-                          new Vector2Int(1, 2)),
+                          new Vector2Int(1, 2), Orientation.Vertical),
 
                 //Diagonal
                 new Line(new List<Vector2Int>() { new Vector2Int(0, 0), new Vector2Int(1, 1), new Vector2Int(2, 2) },
-                          new Vector2Int(1, 1)),
+                          new Vector2Int(1, 1), Orientation.DiagonalA),
+
                 new Line(new List<Vector2Int>() { new Vector2Int(0, 2), new Vector2Int(1, 1), new Vector2Int(2, 0) },
-                          new Vector2Int(1, 1))
+                          new Vector2Int(1, 1), Orientation.DiagonalB)
             };
         }
 

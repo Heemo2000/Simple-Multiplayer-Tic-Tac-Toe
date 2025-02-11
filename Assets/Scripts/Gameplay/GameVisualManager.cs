@@ -13,8 +13,19 @@ namespace Game.Gameplay
         [SerializeField]private Vector2 cellSize = Vector2.zero;
         [SerializeField]private SquashStretchEffect circlePrefab;
         [SerializeField]private SquashStretchEffect crossPrefab;
-        [SerializeField]private SpriteRenderer linePrefab;
+        [SerializeField]private SquashStretchEffect linePrefab;
 
+        private List<SquashStretchEffect> visualGameobjects;
+
+        private void ResetVisuals()
+        {
+            foreach(var current in visualGameobjects)
+            {
+                Destroy(current.gameObject);
+            }
+
+            visualGameobjects.Clear();
+        }
         private void InstantiateSomething(int x, int y, MarkType playerType)
         {
             Debug.Log("Instantiate something");
@@ -28,26 +39,42 @@ namespace Game.Gameplay
             }
         }
 
-        private void SpawnLine(Line line)
+        private void SpawnLine(Line line, MarkType playerType)
         {
-            SpawnLineServerRpc(line.Centre, line.Points[0], line.Points[2]);
+            if(!NetworkManager.IsServer)
+            {
+                return;
+            }
+            float angleZ = 0.0f;
+            switch(line.Orientation)
+            {
+                case Orientation.Horizontal: 
+                                            angleZ = 0.0f;
+                                            break;
+                
+                case Orientation.Vertical: 
+                                            angleZ = 90.0f;
+                                            break;
+                
+                case Orientation.DiagonalA:
+                                            angleZ = -45.0f;
+                                            break;
+
+                case Orientation.DiagonalB:
+                                            angleZ = 45.0f;
+                                            break;
+            }
+            SpawnLineServerRpc(line.Centre, angleZ);
         }
 
         [ServerRpc(Delivery = RpcDelivery.Reliable, RequireOwnership = false)]
-        private void SpawnLineServerRpc(Vector2Int centre, Vector2Int firstPoint, Vector2Int thirdPoint)
+        private void SpawnLineServerRpc(Vector2Int centre, float angleZ)
         {
             Vector2 spawnPosition = CommonUtility.GetWorldPosition2D(origin, centre.x, centre.y, 1, -1, cellSize, gap.x, gap.y);
-            Vector2 direction = ((Vector2)thirdPoint - (Vector2)firstPoint).normalized;
-            
-            float temp = direction.x;
-            direction.x = direction.y;
-            direction.y = temp;
-            
-            Debug.Log("Direction: " + direction);
-            float angle = Vector2.Angle(Vector2.right, direction);
-
-            var lineSprite = Instantiate(linePrefab, spawnPosition, Quaternion.Euler(0.0f, 0.0f, angle));
+            var lineSprite = Instantiate(linePrefab, spawnPosition, Quaternion.Euler(0.0f, 0.0f, angleZ));
             lineSprite.GetComponent<NetworkObject>().Spawn(true);
+            visualGameobjects.Add(lineSprite);
+            lineSprite.PlayEffect();
         }
 
         [ServerRpc(Delivery = RpcDelivery.Reliable, RequireOwnership = false)] 
@@ -57,6 +84,7 @@ namespace Game.Gameplay
             Vector3 spawnPosition = CommonUtility.GetWorldPosition2D(origin, x, y, 1,-1, cellSize, gap.x, gap.y);
             var circle = Instantiate(circlePrefab, spawnPosition, Quaternion.identity);
             circle.GetComponent<NetworkObject>().Spawn(true);
+            visualGameobjects.Add(circle);
             circle.PlayEffect();
         }
 
@@ -67,15 +95,20 @@ namespace Game.Gameplay
             Vector3 spawnPosition = CommonUtility.GetWorldPosition2D(origin, x, y, 1,-1, cellSize, gap.x, gap.y);
             var cross = Instantiate(crossPrefab, spawnPosition, Quaternion.identity);
             cross.GetComponent<NetworkObject>().Spawn(true);
+            visualGameobjects.Add(cross);
             cross.PlayEffect();
         }
 
 
+        private void Awake() {
+            visualGameobjects = new List<SquashStretchEffect>();
+        }
         // Start is called before the first frame update
         void Start()
         {
             GameManager.Instance.OnClickedGridPosition += InstantiateSomething;
             GameManager.Instance.OnGameWin += SpawnLine;
+            GameManager.Instance.OnRematch += ResetVisuals;
         }
 
         
@@ -83,6 +116,7 @@ namespace Game.Gameplay
         {
             GameManager.Instance.OnClickedGridPosition -= InstantiateSomething;
             GameManager.Instance.OnGameWin -= SpawnLine;
+            GameManager.Instance.OnRematch -= ResetVisuals;
             base.OnDestroy();
         }
     }
