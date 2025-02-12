@@ -39,5 +39,30 @@ namespace Game.Core
             //Debug.Log("Difference: " + difference);
             return difference <= EPSILON;
         }
+
+
+        public static bool IsStringLengthInRange(string stringToCheck, int maxLength)
+        {
+            return stringToCheck.Length <= maxLength;
+        }
+        
+        public static bool IsStringValid(string stringToCheck, string acceptableCharacters, int maxLength)
+        {
+            if(stringToCheck.Length == 0 || stringToCheck.Length > maxLength)
+            {
+                return false;
+            }
+
+            for(int i = 0; i < stringToCheck.Length; i++)
+            {
+                char current = stringToCheck[i];
+                if(acceptableCharacters.IndexOf(current) == -1)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
     }
 }
