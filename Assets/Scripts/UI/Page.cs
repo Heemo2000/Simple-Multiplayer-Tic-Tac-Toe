@@ -39,6 +39,7 @@ namespace Game.UI
         {
             OnPushAction?.Invoke();
 
+            gameObject.SetActive(true);
             switch(entryMode)
             {
                 case EntryMode.Slide:
@@ -56,7 +57,7 @@ namespace Game.UI
         public void Exit()
         {
 	    	OnPrePopAction?.Invoke();
-
+            gameObject.SetActive(true);
             switch (exitMode)
             {
                 case EntryMode.Slide:

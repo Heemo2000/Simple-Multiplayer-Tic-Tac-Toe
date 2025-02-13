@@ -35,6 +35,7 @@ namespace Game.UI
             }
 
             transform.localScale = Vector3.zero;
+            transform.gameObject.SetActive(false);
             OnEnd?.Invoke();
         }
 
@@ -71,6 +72,7 @@ namespace Game.UI
             }
 
             canvasGroup.alpha = 0;
+            canvasGroup.gameObject.SetActive(false);
             OnEnd?.Invoke();
         }
 
@@ -141,6 +143,7 @@ namespace Game.UI
             }
 
             transform.anchoredPosition = endPosition;
+            transform.gameObject.SetActive(false);
             OnEnd?.Invoke();
         }
     }

@@ -2,10 +2,16 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Game.Core;
+using UnityEngine.SceneManagement;
+using Unity.Netcode;
+using Unity.Netcode.Transports.UTP;
+using Unity.Networking.Transport.Relay;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
+using Unity.Services.Relay;
+using Unity.Services.Relay.Models;
 using UnityEngine;
 
 namespace Game.LobbyManagement
@@ -21,14 +27,21 @@ namespace Game.LobbyManagement
         public Action OnSignInFailed;
         public Action OnLeftLobby;
         public Action<Lobby> OnJoinedLobby;
+        public Action OnJoinLobbyFailed;
         public Action<Lobby> OnJoinedLobbyUpdate;
         public Action<Lobby> OnKickedFromLobby;
         public Action<List<Lobby>> OnLobbyListChanged;
+        public Action<Lobby> OnLobbyStartGame;
         private Lobby joinedLobby = null;
+        private string relayJoinCode = "";
         private string playerName = "";
+        private bool isHost = false;
+        private bool startedGame = false;
         private Coroutine lobbyHeartbeatCoroutine = null;
         private Coroutine lobbyPoolingCoroutine = null;
 
+        public Lobby JoinedLobby { get => joinedLobby; }
+        public string RelayJoinCode { get => relayJoinCode; }
 
         public async void Authenticate(string playerName)
         {
@@ -69,6 +82,7 @@ namespace Game.LobbyManagement
                 Lobby lobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, 2, options);
 
                 joinedLobby = lobby;
+                
 
                 OnJoinedLobby?.Invoke(lobby);
 
@@ -76,10 +90,12 @@ namespace Game.LobbyManagement
             }
             catch(LobbyServiceException e)
             {
+                OnJoinLobbyFailed?.Invoke();
                 Debug.LogError(e);
             }
-            
         }
+
+        
 
         public async void RefreshLobbyList()
         {
@@ -115,26 +131,42 @@ namespace Game.LobbyManagement
 
         public async void JoinLobbyByCode(string lobbyCode)
         {
-            Player player = GetPlayer();
+            try
+            {
+                Player player = GetPlayer();
 
-            Lobby lobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode, new JoinLobbyByCodeOptions{
-                Player = player
-            });
+                Lobby lobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode, new JoinLobbyByCodeOptions{
+                    Player = player
+                });
 
-            joinedLobby = lobby;
+                joinedLobby = lobby;
 
-            OnJoinedLobby?.Invoke(lobby);
+                OnJoinedLobby?.Invoke(lobby);
+            }
+            catch(LobbyServiceException e)
+            {
+                Debug.LogError(e);
+                OnJoinLobbyFailed?.Invoke();
+            }
         }
 
         public async void JoinLobby(Lobby lobby)
         {
-            Player player = GetPlayer();
+            try
+            {
+                Player player = GetPlayer();
 
-            joinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobby.Id, new JoinLobbyByIdOptions {
-                                Player = player
-                                });
+                joinedLobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobby.Id, new JoinLobbyByIdOptions {
+                                    Player = player
+                                    });
 
-            OnJoinedLobby?.Invoke(lobby);
+                OnJoinedLobby?.Invoke(lobby);
+            }
+            catch(LobbyServiceException e)
+            {
+                Debug.LogError(e);
+                OnJoinLobbyFailed?.Invoke();
+            }
         }
 
         public async void UpdatePlayerName(string playerName)
@@ -184,6 +216,7 @@ namespace Game.LobbyManagement
             catch(LobbyServiceException e)
             {
                 Debug.LogError(e);
+                OnJoinLobbyFailed?.Invoke();
             }
         }
 
@@ -231,7 +264,7 @@ namespace Game.LobbyManagement
 
         protected override void InternalInit()
         {
-            
+            OnLobbyStartGame += HandleRelayPart;
         }
 
         protected override void InternalOnStart()
@@ -249,7 +282,7 @@ namespace Game.LobbyManagement
 
         protected override void InternalOnDestroy()
         {
-            
+            OnLobbyStartGame -= HandleRelayPart;
         }
 
         private Player GetPlayer()
@@ -288,6 +321,21 @@ namespace Game.LobbyManagement
 
                     OnJoinedLobbyUpdate?.Invoke(joinedLobby);
 
+                    if (!IsLobbyHost()) {
+                        if (joinedLobby.Data[Constants.KEY_RELAY_JOIN_CODE].Value != "") {
+                            JoinGame(joinedLobby.Data[Constants.KEY_RELAY_JOIN_CODE].Value);
+                        }
+                    }
+
+                    if (!startedGame) {
+                        if (IsLobbyHost()) {
+                            if (joinedLobby.Players.Count == 2) {
+                                // Two players have joined, start game
+                                StartGame();
+                            }
+                        }
+                    }
+
                     if(!IsPlayerInLobby())
                     {
                         Debug.Log("Kicked from Lobby");
@@ -302,6 +350,142 @@ namespace Game.LobbyManagement
             }
         }
 
+        private async void StartGame() {
+            try 
+            {
+                Debug.Log("StartGame");
+
+                Lobby lobby = await Lobbies.Instance.UpdateLobbyAsync(joinedLobby.Id, new UpdateLobbyOptions {
+                    Data = new Dictionary<string, DataObject> {
+                        { Constants.KEY_START_GAME, new DataObject(DataObject.VisibilityOptions.Public, "1") }
+                    }
+                });
+
+                joinedLobby = lobby;
+
+                isHost = true;
+                startedGame = true;
+
+                OnLobbyStartGame?.Invoke(joinedLobby);
+            } 
+            catch (LobbyServiceException e) 
+            {
+                Debug.Log(e);
+            }
+        }
+
+        private void JoinGame(string relayJoinCode)
+        {
+            Debug.Log("Joining game via relay code " + relayJoinCode);
+            if (string.IsNullOrEmpty(relayJoinCode)) 
+            {
+                Debug.Log("Invalid Relay code, wait");
+                return;
+            }
+
+            isHost = false;
+            this.relayJoinCode = relayJoinCode;
+            startedGame = true;
+            OnLobbyStartGame?.Invoke(joinedLobby);
+        }
+
+        private async void SetRelayJoinCode(string relayJoinCode)
+        {
+            try
+            {
+                Debug.Log("Setting relay join code to " + relayJoinCode);
+
+                Lobby lobby = await Lobbies.Instance.UpdateLobbyAsync(joinedLobby.Id, 
+                                    new UpdateLobbyOptions {
+                                        Data = new Dictionary<string, DataObject>
+                                        {
+                                            {
+                                                Constants.KEY_RELAY_JOIN_CODE, new DataObject(DataObject.VisibilityOptions.Member, relayJoinCode)
+                                            }
+                                        }
+                                    });
+
+                this.joinedLobby = lobby;
+            }
+            catch(LobbyServiceException e)
+            {
+                Debug.LogError(e);
+            }
+        }
+
+        private async void CreateRelay()
+        {
+            try
+            {
+                Allocation allocation = await RelayService.Instance.CreateAllocationAsync(1);
+
+                string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+
+                Debug.Log(joinCode);
+
+                this.relayJoinCode = joinCode;
+
+                RelayServerData relayServerData = new RelayServerData(allocation, "dtls");
+
+                var unityTransport = NetworkManager.Singleton.GetComponent<UnityTransport>();
+                unityTransport.SetRelayServerData(relayServerData);
+
+                StartHost();
+
+                SetRelayJoinCode(joinCode);
+            }
+            catch(RelayServiceException e)
+            {
+                this.relayJoinCode = "";
+                Debug.LogError(e);
+            }
+        }
+
+
+        private async void JoinRelay(string joinCode) 
+        {
+            try 
+            {
+                JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
+
+                RelayServerData relayServerData = new RelayServerData(joinAllocation, "dtls");
+
+                var unityTransport = NetworkManager.Singleton.GetComponent<UnityTransport>();
+                unityTransport.SetRelayServerData(relayServerData);
+
+                StartClient();
+            } 
+            catch (RelayServiceException e) 
+            {
+                Debug.LogError(e);
+            }
+        }
+
+
+        private void StartHost()
+        {
+            NetworkManager.Singleton.StartHost();
+        }
+
+        private void StartClient()
+        {
+            NetworkManager.Singleton.StartClient();
+        }
+
+        private void HandleRelayPart(Lobby lobby)
+        {
+            if (isHost) 
+            {
+                CreateRelay();
+            } 
+            else 
+            {
+                JoinRelay(relayJoinCode);
+            }
+
+            NetworkManager.Singleton.SceneManager.LoadScene(Constants.GAME_SCENE_NAME, LoadSceneMode.Single);
+        }
+
         private bool IsPlayerInLobby() 
         {
             if (joinedLobby != null && joinedLobby.Players != null) 
@@ -313,8 +497,8 @@ namespace Game.LobbyManagement
                         // This player is in this lobby
                         return true;
                     }
-                  }
                 }
+            }
             return false;
         }
 

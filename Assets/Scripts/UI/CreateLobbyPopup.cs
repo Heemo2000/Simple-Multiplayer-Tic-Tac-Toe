@@ -11,10 +11,17 @@ namespace Game.UI
     public class CreateLobbyPopup : Popup
     {
         [SerializeField]private UIManager uiManager;
+        [SerializeField]private ProcessingPage processingPage;
         [SerializeField]private TMP_InputField lobbyNameInputField;
         [SerializeField]private TMP_Dropdown lobbyTypeDropdown;
 
         
+        private void OpenProcessingPage()
+        {
+            uiManager.PushPage(processingPage);
+            processingPage.SetProcessingText("CREATING LOBBY");
+        }
+
         private void CheckLobbyName(string name)
         {
             if(CommonUtility.IsStringLengthInRange(name, 20))
@@ -29,7 +36,10 @@ namespace Game.UI
 
         private void Hide()
         {
-            uiManager.PopPage();
+            if(uiManager.IsPageOnTopOfStack(this))
+            {
+                uiManager.PopPage();
+            }
         }
 
         private void HandleLobbyCreation()
@@ -47,13 +57,18 @@ namespace Game.UI
             lobbyTypeDropdown.AddOptions(new List<string>{ "PRIVATE", "PUBLIC"});
             lobbyNameInputField.onValueChanged.AddListener(CheckLobbyName);
             base.okButton.onClick.AddListener(HandleLobbyCreation);
+            base.okButton.onClick.AddListener(OpenProcessingPage);
+            base.okButton.onClick.AddListener(Hide);
             base.cancelButton.onClick.AddListener(Hide);
+            //LobbyManager.Instance.OnJoinedLobby += 
         }
 
         private void OnDisable() 
         {
             lobbyNameInputField.onValueChanged.RemoveListener(CheckLobbyName);
             base.okButton.onClick.RemoveListener(HandleLobbyCreation);
+            base.okButton.onClick.RemoveListener(OpenProcessingPage);
+            base.okButton.onClick.RemoveListener(Hide);
             base.cancelButton.onClick.RemoveListener(Hide);
         }
     }
