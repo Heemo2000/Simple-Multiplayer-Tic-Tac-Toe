@@ -41,11 +41,17 @@ namespace Game.UI
             {
                 var singleUI = singleUIPool.Get();
                 singleUI.SingleUIPool = singleUIPool;
+                
                 RectTransform rectTransform = singleUI.transform.GetComponent<RectTransform>();
+                Vector2 size = rectTransform.rect.size;
+                
                 rectTransform.pivot = new Vector2(0.5f, 1.0f);
                 rectTransform.anchorMin = new Vector2(0.5f, 1.0f);
                 rectTransform.anchorMax = new Vector2(0.5f, 1.0f);
-                rectTransform.localPosition = new Vector3(0.0f, positionY, 0.0f);
+                rectTransform.localPosition = new Vector3(size.x / 2.0f, positionY, 0.0f);
+
+                positionY -= rectTransform.rect.size.y;
+                
                 singleUI.SetKickPlayerButtonVisible(LobbyManager.Instance.IsLobbyHost() && player.Id != AuthenticationService.Instance.PlayerId);
                 singleUI.UpdatePlayer(player);
             }
