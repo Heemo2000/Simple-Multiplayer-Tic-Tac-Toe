@@ -1,32 +1,23 @@
 using System.Collections;
 using System.Collections.Generic;
+using Game.Core;
+using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.Pool;
 
 namespace Game.Gameplay
 {
     public class ParticleSystemController : MonoBehaviour
     {
         [SerializeField]private ParticleSystem[] particleSystems;
-        
         private Coroutine playCoroutine;
-        private ObjectPool<ParticleSystemController> particlePool;
+        private NetworkObject networkObject;
+        private NetworkObjectPool networkObjectPool;
+        private GameObject prefab = null;
+        public NetworkObjectPool NetworkObjectPool { get => networkObjectPool; set => networkObjectPool = value; }
+        public GameObject Prefab { get => prefab; set => prefab = value; }
 
-        public ObjectPool<ParticleSystemController> ParticlePool { get => particlePool; set => particlePool = value; }
-
-        public void SetPool(ObjectPool<ParticleSystemController> pool)
-        {
-            particlePool = pool;
-        }
         public void Play()
         {
-            /*
-            foreach(ParticleSystem particleSystem in particleSystems)
-            {
-                particleSystem.Play();
-            }
-            */
-
             if(playCoroutine == null)
             {
                 playCoroutine = StartCoroutine(PlayParticle());
@@ -43,9 +34,9 @@ namespace Game.Gameplay
             yield return new WaitUntil(()=> IsAllStopped());
 
             playCoroutine = null;
-            if(particlePool != null)
+            if(networkObjectPool != null)
             {
-                particlePool.Release(this);
+                networkObjectPool.ReturnNetworkObject(networkObject, prefab);
             }
         }
 
@@ -60,6 +51,11 @@ namespace Game.Gameplay
             }
 
             return true;
+        }
+
+        private void Awake() 
+        {
+            networkObject = GetComponent<NetworkObject>();    
         }
     }
 }

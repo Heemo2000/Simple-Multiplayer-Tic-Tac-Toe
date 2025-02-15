@@ -15,7 +15,7 @@ namespace Game.Gameplay
         [SerializeField]private SquashStretchEffect circlePrefab;
         [SerializeField]private SquashStretchEffect crossPrefab;
         [SerializeField]private SquashStretchEffect linePrefab;
-
+        //[SerializeField]private ParticleSystemController[] effectPrefabs;
         private List<SquashStretchEffect> visualGameobjects;
 
         private void ResetVisuals()
@@ -87,7 +87,7 @@ namespace Game.Gameplay
             circle.GetComponent<NetworkObject>().Spawn(true);
             visualGameobjects.Add(circle);
             circle.PlayEffect();
-            InstantiateParticles(x,y);
+            //InstantiateParticles(x,y);
         }
 
         [ServerRpc(Delivery = RpcDelivery.Reliable, RequireOwnership = false)] 
@@ -99,14 +99,21 @@ namespace Game.Gameplay
             cross.GetComponent<NetworkObject>().Spawn(true);
             visualGameobjects.Add(cross);
             cross.PlayEffect();
-            InstantiateParticles(x,y);
+            //InstantiateParticles(x,y);
         }
 
-        private void InstantiateParticles(int x, int y)
-        {
-            Vector3 spawnPosition = CommonUtility.GetWorldPosition2D(origin, x, y, 1,-1, cellSize, gap.x, gap.y);
-            ParticlePoolHandler.Instance.PlayParticleEffect(spawnPosition);
-        }
+        // private void InstantiateParticles(int x, int y)
+        // {
+        //     Vector3 spawnPosition = CommonUtility.GetWorldPosition2D(origin, x, y, 1,-1, cellSize, gap.x, gap.y);
+        //     int randomIndex = UnityEngine.Random.Range(0, effectPrefabs.Length);
+        //     var randomPrefabGO = effectPrefabs[randomIndex].gameObject;
+        //     NetworkObject networkObject = NetworkObjectPool.Instance.GetNetworkObject(randomPrefabGO, spawnPosition, Quaternion.identity);
+        //     var particle = networkObject.gameObject.GetComponent<ParticleSystemController>();
+        //     particle.NetworkObjectPool = NetworkObjectPool.Instance;
+        //     particle.Prefab = randomPrefabGO;
+        //     networkObject.Spawn(true);
+        //     particle.Play();
+        // }
 
 
         private void Awake() {
