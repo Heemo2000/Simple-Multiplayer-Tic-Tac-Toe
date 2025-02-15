@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using Game.LobbyManagement;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
@@ -34,7 +32,15 @@ namespace Game.UI
         private void OpenProcessingPage()
         {
             uiManager.PushPage(processingPage);
-            processingPage.SetProcessingText("CREATING LOBBY");
+            processingPage.SetProcessingText("FINDING LOBBY");
+        }
+
+        private void CloseProcessingPage()
+        {
+            if(uiManager.IsPageOnTopOfStack(processingPage))
+            {
+                uiManager.PopPage();
+            }
         }
 
         private void OpenLobbyUIPage(Lobby lobby)
@@ -45,10 +51,13 @@ namespace Game.UI
             }
 
             uiManager.PushPage(lobbyUIPage);
-            lobbyUI.SetJoinCodeText(LobbyManager.Instance.RelayJoinCode);
+            lobbyUI.SetJoinCodeText(LobbyManager.Instance.LobbyCode);
         }
 
-
+        private void QuickJoinLobby()
+        {
+            LobbyManager.Instance.QuickJoinLobby();
+        }
 
         // Start is called before the first frame update
         void Start()
@@ -56,7 +65,9 @@ namespace Game.UI
             createLobbyButton.onClick.AddListener(OpenCreatePopup);
             joinLobbyButton.onClick.AddListener(OpenJoinLobbyPopup);
             quickJoinLobbyButton.onClick.AddListener(OpenProcessingPage);
+            quickJoinLobbyButton.onClick.AddListener(QuickJoinLobby);
             LobbyManager.Instance.OnJoinedLobby += OpenLobbyUIPage;
+            LobbyManager.Instance.OnJoinLobbyFailed += CloseProcessingPage;
         }
 
         private void OnDestroy() 
@@ -64,6 +75,9 @@ namespace Game.UI
             createLobbyButton.onClick.RemoveListener(OpenCreatePopup);
             joinLobbyButton.onClick.RemoveListener(OpenJoinLobbyPopup);
             quickJoinLobbyButton.onClick.RemoveListener(OpenProcessingPage);
+            quickJoinLobbyButton.onClick.RemoveListener(QuickJoinLobby);
+            LobbyManager.Instance.OnJoinedLobby -= OpenLobbyUIPage;
+            LobbyManager.Instance.OnJoinLobbyFailed -= CloseProcessingPage;
         }
     }
 }

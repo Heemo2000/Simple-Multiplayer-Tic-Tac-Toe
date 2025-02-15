@@ -30,6 +30,11 @@ namespace Game.UI
         public void UpdatePlayer(Player player)
         {
             this.player = player;
+            if(!player.Data.ContainsKey(Constants.KEY_PLAYER_NAME))
+            {
+                Debug.LogError("Player doesn't contain KEY_PLAYER_NAME");
+                return;
+            }
             playerNameText.text = player.Data[Constants.KEY_PLAYER_NAME].Value;
         }
 

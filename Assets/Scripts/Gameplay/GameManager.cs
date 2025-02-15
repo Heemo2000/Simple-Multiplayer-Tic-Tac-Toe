@@ -12,7 +12,10 @@ namespace Game.Gameplay
         private NetworkVariable<MarkType> currentPlayablePlayerType = new NetworkVariable<MarkType>(MarkType.None);
         private NetworkVariable<int> crossWinsCount = new NetworkVariable<int>(0);
         private NetworkVariable<int> circleWinsCount = new NetworkVariable<int>(0);
+        private NetworkVariable<bool> isGameStartedFromOtherScene = new NetworkVariable<bool>(false);
+
         private MarkType[,] playerTypeArray = null;
+        
         private List<Line> linesList;
         public Action<int,int, MarkType> OnClickedGridPosition;
         public Action OnPlacedObject;
@@ -113,6 +116,13 @@ namespace Game.Gameplay
 
             circleWinsCount.OnValueChanged += (int oldScore, int newScore) => {
                 OnScoreChanged?.Invoke();
+            };
+
+            isGameStartedFromOtherScene.OnValueChanged +=(bool previousValue, bool newValue) => {
+                if(newValue == true)
+                {
+                    TriggerOnGameStartedServerRpc();
+                }
             };
         }
 
@@ -287,6 +297,15 @@ namespace Game.Gameplay
         protected override void InternalOnDestroy()
         {
             
+        }
+
+        private void Update() 
+        {
+            if(!isGameStartedFromOtherScene.Value && NetworkManager.IsServer && NetworkManager.ConnectedClientsList.Count >= 2)
+            {
+                isGameStartedFromOtherScene.Value = true;
+                //Debug.Log("Current players count: " + NetworkManager.ConnectedClientsList.Count);
+            }
         }
     }
 }

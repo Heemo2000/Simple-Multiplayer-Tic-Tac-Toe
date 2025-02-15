@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Game.Core;
 using Unity.Netcode;
+using System;
 
 namespace Game.Gameplay
 {
@@ -86,6 +87,7 @@ namespace Game.Gameplay
             circle.GetComponent<NetworkObject>().Spawn(true);
             visualGameobjects.Add(circle);
             circle.PlayEffect();
+            InstantiateParticles(x,y);
         }
 
         [ServerRpc(Delivery = RpcDelivery.Reliable, RequireOwnership = false)] 
@@ -97,6 +99,13 @@ namespace Game.Gameplay
             cross.GetComponent<NetworkObject>().Spawn(true);
             visualGameobjects.Add(cross);
             cross.PlayEffect();
+            InstantiateParticles(x,y);
+        }
+
+        private void InstantiateParticles(int x, int y)
+        {
+            Vector3 spawnPosition = CommonUtility.GetWorldPosition2D(origin, x, y, 1,-1, cellSize, gap.x, gap.y);
+            ParticlePoolHandler.Instance.PlayParticleEffect(spawnPosition);
         }
 
 
@@ -112,6 +121,7 @@ namespace Game.Gameplay
         }
 
         
+
         public override void OnDestroy() 
         {
             GameManager.Instance.OnClickedGridPosition -= InstantiateSomething;

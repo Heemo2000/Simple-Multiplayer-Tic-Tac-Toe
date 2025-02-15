@@ -15,7 +15,10 @@ namespace Game.SoundManagement
 
         private void OnGameStarted()
         {
-            SoundManager.Instance.Play(musicData, transform.position);
+            if(!SoundManager.Instance.IsSoundPlaying(musicData))
+            {
+                SoundManager.Instance.Play(musicData, transform.position);
+            }
         }
 
         private void OnPlacedObject()

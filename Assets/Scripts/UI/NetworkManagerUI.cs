@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using Unity.Netcode;
+using Game.Gameplay;
 namespace Game.UI
 {
     public class NetworkManagerUI : MonoBehaviour
@@ -47,6 +48,8 @@ namespace Game.UI
                 HideNetworkManagerScreen();
                 NetworkManager.Singleton.StartClient();
             });
+            
+            GameManager.Instance.OnGameStarted += HideNetworkManagerScreen;
             
         }
     }

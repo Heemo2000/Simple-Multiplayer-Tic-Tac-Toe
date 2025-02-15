@@ -121,6 +121,19 @@ namespace Game.SoundManagement
             return true;
         }
 
+        public bool IsSoundPlaying(SoundData soundData)
+        {
+            foreach(var emitter in activeSoundEmitters)
+            {
+                if(emitter.Data == soundData)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public SoundEmitter Get()
         {
             return soundEmitterPool.Get();

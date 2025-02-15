@@ -14,6 +14,8 @@ namespace Game.Core
         public const string KEY_PLAYER_NAME = "PlayerName";
         public const string KEY_RELAY_JOIN_CODE = "RelayJoinCode";
         public const string KEY_START_GAME = "StartGame";
+        public const string RELAY_PROTOCOL = "dtls";
         public const string GAME_SCENE_NAME = "Game";
+        
     }
 }
