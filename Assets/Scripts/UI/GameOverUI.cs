@@ -1,10 +1,12 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Game.Gameplay;
-using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
+using Game.Core;
+
+using Game.Gameplay;
 
 namespace Game.UI
 {
@@ -16,6 +18,7 @@ namespace Game.UI
         [SerializeField]private Color loseColor;
         [SerializeField]private Color tiedColor;
         [SerializeField]private Button rematchButton;
+        [SerializeField]private AdmobManager adManager;
 
         private void Hide()
         {
@@ -55,12 +58,13 @@ namespace Game.UI
 
         private void Awake() {
             GameManager.Instance.OnRematch += Hide;
-            rematchButton.onClick.AddListener(GameManager.Instance.RematchServerRpc);
         }
 
         private void Start() 
         {
             Hide();
+            rematchButton.onClick.AddListener(GameManager.Instance.RematchServerRpc);
+            //rematchButton.onClick.AddListener(adManager.ShowRewardedAd);
             GameManager.Instance.OnGameWin += ShowWinStatus;
             GameManager.Instance.OnGameTied += ShowTiedMessage;    
         }
@@ -73,6 +77,7 @@ namespace Game.UI
             GameManager.Instance.OnGameWin -= ShowWinStatus;
             GameManager.Instance.OnGameTied -= ShowTiedMessage;
             rematchButton.onClick.RemoveListener(GameManager.Instance.RematchServerRpc);
+            //rematchButton.onClick.RemoveListener(adManager.ShowRewardedAd);
         }
     }
 }
