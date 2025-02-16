@@ -5,7 +5,7 @@ using GoogleMobileAds.Api;
 using System;
 namespace Game.Core
 {
-    public class AdmobManager : MonoBehaviour
+    public class AdmobManager : MonoSingelton<AdmobManager>
     {
         private const string ANDROID_REWARDED_AD_UNIT_ID = "ca-app-pub-5429568779857286/6633053078";
 
@@ -19,38 +19,6 @@ namespace Game.Core
         private bool isFullyInitialized = false;
 
         public bool IsFullyInitialized { get => isFullyInitialized; }
-
-        public void LoadRewaredAd()
-        {
-            if(rewardedAd != null)
-            {
-                DestroyAd();
-            }
-
-            Debug.Log("Loading rewarded ad.");
-
-            var adRequest = new AdRequest();
-
-            RewardedAd.Load(ANDROID_REWARDED_AD_UNIT_ID, adRequest, (RewardedAd ad, LoadAdError error) => 
-            {
-                if(error != null)
-                {
-                    Debug.LogError("Failed to load rewarded ad with error: \n" + error);
-                }
-
-                if(ad == null)
-                {
-                    Debug.LogError("Unexpected error: Rewarded load event fired with null ad and null error");
-                    return;
-                }
-
-                Debug.Log("Rewaded ad loaded with response: " + ad.GetResponseInfo());
-                rewardedAd = ad;
-
-                RegisterEventCallbacks(ad);
-
-            });
-        }
 
         public void ShowRewardedAd()
         {
@@ -68,6 +36,27 @@ namespace Game.Core
             {
                 Debug.LogError("Rewarded ad is not ready yet.");
             }
+        }
+
+        protected override void InternalInit()
+        {
+            
+        }
+
+        protected override void InternalOnStart()
+        {
+            isFullyInitialized = false;
+            MobileAds.Initialize((InitializationStatus status)=>
+            {
+                Debug.Log("Initialized mobile ads");
+                isFullyInitialized = true;
+                LoadRewaredAd();
+            });
+        }
+
+        protected override void InternalOnDestroy()
+        {
+            
         }
 
         private void DestroyAd()
@@ -122,13 +111,35 @@ namespace Game.Core
             };
         }
 
-        private void Start() 
+        private void LoadRewaredAd()
         {
-            isFullyInitialized = false;
-            MobileAds.Initialize((InitializationStatus status)=>
+            if(rewardedAd != null)
             {
-                Debug.Log("Initialized mobile ads");
-                isFullyInitialized = true;
+                DestroyAd();
+            }
+
+            Debug.Log("Loading rewarded ad.");
+
+            var adRequest = new AdRequest();
+
+            RewardedAd.Load(ANDROID_REWARDED_AD_UNIT_ID, adRequest, (RewardedAd ad, LoadAdError error) => 
+            {
+                if(error != null)
+                {
+                    Debug.LogError("Failed to load rewarded ad with error: \n" + error);
+                }
+
+                if(ad == null)
+                {
+                    Debug.LogError("Unexpected error: Rewarded load event fired with null ad and null error");
+                    return;
+                }
+
+                Debug.Log("Rewaded ad loaded with response: " + ad.GetResponseInfo());
+                rewardedAd = ad;
+
+                RegisterEventCallbacks(ad);
+
             });
         }
     }

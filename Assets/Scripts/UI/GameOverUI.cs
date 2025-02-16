@@ -18,7 +18,6 @@ namespace Game.UI
         [SerializeField]private Color loseColor;
         [SerializeField]private Color tiedColor;
         [SerializeField]private Button rematchButton;
-        [SerializeField]private AdmobManager adManager;
 
         private void Hide()
         {
@@ -63,8 +62,8 @@ namespace Game.UI
         private void Start() 
         {
             Hide();
-            rematchButton.onClick.AddListener(GameManager.Instance.RematchServerRpc);
-            //rematchButton.onClick.AddListener(adManager.ShowRewardedAd);
+            //rematchButton.onClick.AddListener(GameManager.Instance.RematchServerRpc);
+            rematchButton.onClick.AddListener(AdmobManager.Instance.ShowRewardedAd);
             GameManager.Instance.OnGameWin += ShowWinStatus;
             GameManager.Instance.OnGameTied += ShowTiedMessage;    
         }
@@ -76,8 +75,8 @@ namespace Game.UI
             GameManager.Instance.OnRematch -= Hide;
             GameManager.Instance.OnGameWin -= ShowWinStatus;
             GameManager.Instance.OnGameTied -= ShowTiedMessage;
-            rematchButton.onClick.RemoveListener(GameManager.Instance.RematchServerRpc);
-            //rematchButton.onClick.RemoveListener(adManager.ShowRewardedAd);
+            //rematchButton.onClick.RemoveListener(GameManager.Instance.RematchServerRpc);
+            rematchButton.onClick.RemoveListener(AdmobManager.Instance.ShowRewardedAd);
         }
     }
 }
